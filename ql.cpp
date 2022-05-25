@@ -493,7 +493,7 @@ public:
 
   //{{{
   void addCodeByte (uint8_t byte) {
-    mCodeArray[mCodeLength++] = byte;
+    mCode[mCodeLength++] = byte;
     }
   //}}}
   //{{{
@@ -655,8 +655,8 @@ private:
 
       // packet
       for (uint8_t i = 0; i < length; i++) {
-        writeCheckSummedByte (mCodeArray[i+pos] >> 8);
-        writeCheckSummedByte (mCodeArray[i+pos] & 0xFF);
+        writeCheckSummedByte (mCode[i+pos] >> 8);
+        writeCheckSummedByte (mCode[i+pos] & 0xFF);
         }
 
       // packet end
@@ -674,7 +674,7 @@ private:
 
   uint32_t mCodeLength = 0; // code length in words
   int mOutputChecksum = 0;
-  array <uint16_t, 64> mCodeArray;
+  array <uint16_t, 64> mCode;
   };
 //}}}
 //{{{
@@ -1369,7 +1369,7 @@ private:
 //}}}
 
 //{{{
-void parseStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinker& linker) {
+void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinker& linker) {
 
   string line;
   while (getline (stream, line))
@@ -1384,7 +1384,7 @@ void parseStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinker& 
       if (!includeStream.is_open())
         printf ("error - include file %s not found\n", includeFileName.c_str());
       else {
-        parseStream (includeStream, objectFiles, linker);
+        parseCmdStream (includeStream, objectFiles, linker);
         includeStream.close();
         }
       }
@@ -1453,15 +1453,15 @@ int main (int numArgs, char* args[]) {
   vector <cObjectFile> objectFiles;
 
   // read option,objectFiles from .cmd file
-  ifstream stream (cmdFileName + ".cmd", ifstream::in);
-  if (!stream.is_open()) {
+  ifstream cmdStream (cmdFileName + ".cmd", ifstream::in);
+  if (!cmdStream.is_open()) {
     //{{{  error, return
     printf ("error - cmd file %s not found\n", cmdFileName.c_str());
     return 1;
     }
     //}}}
-  parseStream (stream, objectFiles, linker);
-  stream.close();
+  parseCmdStream (cmdStream, objectFiles, linker);
+  cmdStream.close();
 
   // show options
   linker.dumpOptions();
