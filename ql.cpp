@@ -1,4 +1,4 @@
-// ql.cpp - liker for 68k motorola, .ro, relocatable object, format for versados 1980's
+// ql.cpp - liker for 68k motorola, .ro, relocatable object, format for versados
 //{{{  includes
 #include <cstdio>
 #include <cstdint>
@@ -28,8 +28,7 @@ constexpr size_t kNumOptions = eLastOption; // for enum arrays to play nice
 // sections
 constexpr size_t kNumSections = 16;
 
-// symbol - actually 8 chars for pascal compiler, always at least 2 trailing spaces
-constexpr size_t kActualSymbolNameLength = 8;
+// symbol - usually 8 chars for oregon pascal compiler, but masm may use 10, padded with trailing spaces
 constexpr size_t kObjectSymbolNameLength = 10;
 
 // default section start address, no idea why its this number, VersaDos history ?
@@ -343,20 +342,20 @@ public:
     ofstream stream (fileName + ".xrf", ofstream::out);
 
     // list undefined symbols
-    stream << "------------------- undefined symbols ----------------------------" << endl;
+    stream << "---------------- undefined symbols ------------------------------" << endl;
     for (auto const& [key, symbol] : mSymbolMap)
       if (!symbol->mDefined) {
         //{{{  list symbol
-        stream << setw (kObjectSymbolNameLength) << symbol->mName.c_str() << " undefined";
+        stream << left << setw (kObjectSymbolNameLength) << symbol->mName.c_str() << "undefined";
         if (symbol->mReferences.empty())
           stream << endl;
 
         else {
           stream << " usedBy";
-          int width = kObjectSymbolNameLength + 10 + 7;
+          int width = kObjectSymbolNameLength + 9 + 7;
           for (auto& symbolName : symbol->mReferences) {
             if (!width) {
-              width = kObjectSymbolNameLength + 10 + 7;
+              width = kObjectSymbolNameLength + 9 + 7;
               for (int i = 0; i < width; i++)
                 stream << ' ';
               }
@@ -374,14 +373,15 @@ public:
         //}}}
 
     // list defined used symbols
-    stream << endl << "----------------- defined symbols --------------------------------" << endl;
+    stream << endl
+           << "----------------- defined symbols -------------------------------" << endl;
     for (auto const& [key, symbol] : mSymbolMap)
       if (symbol->mDefined && !symbol->mReferences.empty()) {
         //{{{  list symbol
-        stream << setw (kObjectSymbolNameLength) << symbol->mName.c_str()
-                << " definedBy"
-                << setw(9) << symbol->mModuleName
-                << " usedBy";
+        stream << left << setw (kObjectSymbolNameLength) << symbol->mName.c_str()
+               << "definedBy "
+               << left << setw(9) << symbol->mModuleName
+               << " usedBy";
         int width = kObjectSymbolNameLength + 10  + 9 + 7;
 
         for (auto& symbolName : symbol->mReferences) {
@@ -405,12 +405,13 @@ public:
         //}}}
 
     // list defined but unused symbols
-    stream << endl << "------------- defined but unused symbols -------------------------" << endl;
+    stream << endl
+           << "------------- defined but unused symbols ------------------------" << endl;
     for (auto const& [key, symbol] : mSymbolMap)
       if (symbol->mDefined && symbol->mReferences.empty())
-        stream << setw (kObjectSymbolNameLength) << symbol->mName.c_str()
+        stream << left << setw (kObjectSymbolNameLength) << symbol->mName.c_str()
                << " unused definedBy " << symbol->mModuleName << endl;
-    stream << "------------------------------------------------------------------" << endl;
+    stream << "-----------------------------------------------------------------" << endl;
 
     stream.close();
     }
@@ -675,7 +676,8 @@ public:
   enum eType { eUnknown, eRo, eRx, eXro, eHis };
 
   //{{{
-  cObjectFile (const string& fileRootName, const string& extension) : mFileName (fileRootName + "." + extension) {
+  cObjectFile (const string& fileRootName, const string& extension) 
+      : mFileName (fileRootName + "." + extension) {
 
     if (extension == "ro")
       mType = eRo;
@@ -696,7 +698,7 @@ public:
   void pass1 (cLinker& linker) {
 
     if (kPassDebug)
-      printf ("passFile %s\n", mFileName.c_str());
+      printf ("pass1 file %s\n", mFileName.c_str());
 
     if ((mType == eRx) || (mType == eHis) || (mType == eUnknown))
       return;
@@ -749,7 +751,7 @@ public:
       return;
 
     if (kPassDebug)
-      printf ("passFile %s\n", mFileName.c_str());
+      printf ("pass 2 file %s\n", mFileName.c_str());
 
     ifstream stream (mFileName.c_str(), ifstream::in | ifstream::binary);
     if (!stream.is_open()) {
@@ -895,7 +897,7 @@ private:
     // force upperCase
 
       string name;
-      name.reserve (kActualSymbolNameLength);
+      name.reserve (kObjectSymbolNameLength);
 
       // read maxSymbolNameLength, but only append to name up to first space in string
       bool spaceFound = false;
@@ -973,7 +975,7 @@ private:
             if (pass1) {
               linker.incCommonDefs();
               if (kPassDebug)
-                printf ("commonSection:%2d %10s size:%x\n", (int)section, symbolName.c_str(), size);
+                printf ("commonSection:%2d %s size:%x\n", (int)section, symbolName.c_str(), size);
 
               bool found;
               cSymbol* symbol = linker.findCreateSymbol (symbolName, found);

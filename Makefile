@@ -1,5 +1,5 @@
 # Makefile for ql motorola .ro format linker
-CC = gcc
+CC = g++
 OPT = # -O
 DEB = -g
 CFLAGS = $(OPT) $(DEB)
