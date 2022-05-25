@@ -11,6 +11,13 @@
 #include <fstream>
 #include <iomanip>
 
+#ifdef _WIN32_
+  #include <format>
+#endif
+
+#ifdef __linux__
+#endif
+
 using namespace std;
 //}}}
 //{{{  debug flags
@@ -676,7 +683,7 @@ public:
   enum eType { eUnknown, eRo, eRx, eXro, eHis };
 
   //{{{
-  cObjectFile (const string& fileRootName, const string& extension) 
+  cObjectFile (const string& fileRootName, const string& extension)
       : mFileName (fileRootName + "." + extension) {
 
     if (extension == "ro")
