@@ -19,7 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="fmt\format.cpp" />
     <ClCompile Include="ql.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="fmt\color.h" />
+    <ClInclude Include="fmt\core.h" />
+    <ClInclude Include="fmt\format.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

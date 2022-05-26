@@ -11,14 +11,11 @@
 #include <fstream>
 #include <iomanip>
 
-#ifdef _WIN32_
-  #include <format>
-#endif
-
-#ifdef __linux__
-#endif
+#include "fmt/core.h"
+#include "fmt/color.h"
 
 using namespace std;
+using namespace fmt;
 //}}}
 //{{{  debug flags
 constexpr bool kOptionDebug = false;
@@ -45,6 +42,7 @@ constexpr uint8_t kEscapeCh = 0x1B;
 
 constexpr int kDumpWidth = 100;
 //}}}
+// color::orange, color::light_salmon,  color::yellow, color::green, color::lime_green,  color::lavender
 
 //{{{
 class cOptions {
@@ -67,7 +65,7 @@ public:
   void parseLine (const string& line) {
 
     if (kOptionDebug)
-      printf ("parseOptions %s\n", line.c_str());
+      print ("parseOptions {}\n", line);
 
     // parse into individual options, stripping out /
     size_t start = 1;
@@ -84,15 +82,15 @@ public:
   //{{{
   void dump() {
 
-    printf ("options ");
+    print ("options ");
     for (uint8_t optionIndex = eChat; optionIndex < eLastOption; optionIndex++)
       if (mEnabled[optionIndex])
-        printf ("%s ", kOptionNames [optionIndex].c_str());
-    printf ("\n");
+        print ("{} ", kOptionNames [optionIndex]);
+    print ("\n");
 
     for (uint8_t section = 0;  section <= 15; section++)
       if (mSectionBaseAddress[section])
-        printf ("  section %2d baseAddress:%06x\n", section, mSectionBaseAddress[section]);
+        print ("  section {:2d} baseAddress:{:6x}\n", section, mSectionBaseAddress[section]);
     }
   //}}}
 
@@ -160,10 +158,10 @@ private:
           mSectionBaseAddress[section] = address;
 
         if (kOptionDebug)
-          printf ("parseOption section %s sectionNum:%2d address:%6x\n", token.c_str(), (int)section, address);
+          print ("parseOption section {} sectionNum:{:2d} address:{:6x}\n", token, (int)section, address);
         }
       else
-        printf ("parseOption - unrecognised option %s\n", token.c_str());
+        print ("parseOption - unrecognised option {}\n", token);
       }
     }
   //}}}
@@ -318,13 +316,13 @@ public:
         mBaseAddress = mOptions.getSectionBaseAddress (section);
 
       if (mSections[section].mSectBase) {
-        printf ("section:%2d start:%6x size:%6x\n", (int)section, mBaseAddress, mSections[section].mSectBase);
+        print ("section:{:2d} start:{:6x} size:{:6x}\n", (int)section, mBaseAddress, mSections[section].mSectBase);
         mSections[section].mBaseAddress = mBaseAddress;
         mBaseAddress = mBaseAddress + mSections[section].mSectBase;
         }
       }
 
-    printf ("          finish:%6x size:%6x\n", mBaseAddress, mBaseAddress - mOptions.getSectionBaseAddress(0));
+    print ("          finish:{:6x} size:{:6x}\n", mBaseAddress, mBaseAddress - mOptions.getSectionBaseAddress(0));
     }
   //}}}
   //{{{
@@ -337,9 +335,9 @@ public:
       symbol->mDefined ? numDefinedSymbols++: numUndefinedSymbols++;
 
     if (numUndefinedSymbols)
-      printf ("%d undefined symbols, ", numUndefinedSymbols);
+      print ("{} undefined symbols, ", numUndefinedSymbols);
 
-    printf ("%d symbols, %d objectFiles, %d commonDefs, %d xDefs, %d xRefs\n",
+    print ("%{} symbols, {} objectFiles, {} commonDefs, {} xDefs, {} xRefs\n",
             numDefinedSymbols, mNumObjectFiles, mNumCommonDefs, mNumXdefs, mNumXrefs);
     }
   //}}}
@@ -705,7 +703,7 @@ public:
   void pass1 (cLinker& linker) {
 
     if (kPassDebug)
-      printf ("pass1 file %s\n", mFileName.c_str());
+      print ("pass1 file {}\n", mFileName);
 
     if ((mType == eRx) || (mType == eHis) || (mType == eUnknown))
       return;
@@ -714,7 +712,7 @@ public:
     if (!stream.is_open()) {
       //{{{  error, return
       mErrorFlagged = true;
-      printf ("error - objectFile %s not found\n", mFileName.c_str());
+      print ("error - objectFile {} not found\n", mFileName);
       return;
       }
       //}}}
@@ -764,7 +762,7 @@ public:
     if (!stream.is_open()) {
       //{{{  error, return
       mErrorFlagged = true;
-      printf ("error - objectFile %s not found on pass2 but ok on pass1\n", mFileName.c_str());
+      print ("error - objectFile {} not found on pass2 but ok on pass1\n", mFileName);
       return;
       }
       //}}}
@@ -799,8 +797,8 @@ public:
   //{{{
   void dumpSummary() {
 
-    printf ("objectFile %s id:%d esd:%d text:%d end%d topEsd:%d\n",
-            mFileName.c_str(), mNumIdRecords, mNumEsdRecords, mNumTxtRecords, mNumEndRecords, mTopEsd);
+    print ("objectFile {} id:{} esd:{} text:{} end:{} topEsd:{}\n",
+           mFileName.c_str(), mNumIdRecords, mNumEsdRecords, mNumTxtRecords, mNumEndRecords, mTopEsd);
     };
   //}}}
 
@@ -858,7 +856,7 @@ private:
             mBlock[i] = stream.get();
         }
       else
-        printf ("error - unrecognised objectRecord header %x\n", mHeader);
+        print ("error - unrecognised objectRecord header {:x}\n", mHeader);
 
       return true;
       }
@@ -880,7 +878,7 @@ private:
     // get 1 bytes to form uint8_t result
 
       if (mBlockIndex >= mLength) {
-        printf ("error - cObject::getUint8 past end of record data\n");
+        print ("error - cObject::getUint8 past end of record data\n");
         return 0;
         }
 
@@ -927,7 +925,7 @@ private:
       linker.setCurrentModuleName (getSymbolName());
 
       if (kPassDebug)
-        printf ("Id record - module:%s\n", linker.getCurrentModuleName().c_str());
+        print ("Id record - module:{}\n", linker.getCurrentModuleName());
 
       // init esd values in case of zero length sections
       objectFile->mTopEsd = 17;
@@ -962,8 +960,7 @@ private:
             uint32_t start = getUint32();
 
             if (pass1)
-              printf ("Absolute section in %s size:%x start:%x\n",
-                      linker.getCurrentModuleName().c_str(), size, start);
+              print ("Absolute section in {} size:{:x} start:{:x}\n", linker.getCurrentModuleName(), size, start);
             else {
               objectFile->mEsds[objectFile->mTopEsd].mSymbol = nullptr;
               objectFile->mEsds[objectFile->mTopEsd].mAddress = start;
@@ -982,7 +979,7 @@ private:
             if (pass1) {
               linker.incCommonDefs();
               if (kPassDebug)
-                printf ("commonSection:%2d %s size:%x\n", (int)section, symbolName.c_str(), size);
+                print ("commonSection:{} {} size:{:x}\n", (int)section, symbolName, size);
 
               bool found;
               cSymbol* symbol = linker.findCreateSymbol (symbolName, found);
@@ -992,16 +989,16 @@ private:
                 // check redefinition
                 if (size != symbol->mCommonSize) {
                   if (!symbol->mErrorFlagged && !symbol->mCommonSizeDefined) {
-                    printf ("Label %s doubleDefined\n", symbolName.c_str());
-                    printf ("- common in %s\n", linker.getCurrentModuleName().c_str());
-                    printf ("- xDef in %s\n", symbol->mModuleName.c_str());
+                    print ("Label {} doubleDefined\n", symbolName);
+                    print ("- common in {}\n", linker.getCurrentModuleName());
+                    print ("- xDef in {}\n", symbol->mModuleName);
                     symbol->mErrorFlagged = true;
                     }
                   else if (!symbol->mErrorFlagged) {
                     // check
-                    printf ("Common area size clash - common %s\n ", symbolName.c_str());
-                    printf ("- in %s size:%d\n", linker.getCurrentModuleName().c_str(), int(size));
-                    printf ("- in %s size:%d\n", symbol->mModuleName.c_str(), int(symbol->mCommonSize));
+                    print ("Common area size clash - common {}\n ", symbolName);
+                    print ("- in {} size:{}\n", linker.getCurrentModuleName(), int(size));
+                    print ("- in {} size:{}\n", symbol->mModuleName, int(symbol->mCommonSize));
                     symbol->mErrorFlagged = true;
                     }
 
@@ -1024,7 +1021,7 @@ private:
               // pass2
               cSymbol* symbol = linker.findSymbol (symbolName);
               if (!symbol)
-                printf ("error - common symbol not found on pass2 %s\n", symbolName.c_str());
+                print ("error - common symbol not found on pass2 {}\n", symbolName);
 
               objectFile->mEsds[objectFile->mTopEsd].mAddress = symbol->mAddress + linker.mSections[symbol->mSection].mBaseAddress;
               objectFile->mEsds[objectFile->mTopEsd].mSymbol = symbol;
@@ -1042,7 +1039,7 @@ private:
             uint32_t size = getUint32();
 
             if (kPassDebug)
-              printf ("relocatable section:%2d size:%x\n", (int)section, size);
+              print ("relocatable section:{:2d} size:{:x}\n", (int)section, size);
 
             if (pass1) {
               linker.mSections[section].mSectBase += size;
@@ -1078,12 +1075,10 @@ private:
               bool found;
               cSymbol* symbol = linker.findCreateSymbol (symbolName, found);
               if (kPassDebug)
-                printf ("symbol xDef %s - section:%2d module:%s %s symbol:%s address:%x\n",
-                        found ? "redefined": "",
-                        (int)section,
-                        linker.getCurrentModuleName().c_str(),
-                        found ? symbol->mModuleName.c_str() : "",
-                        symbolName.c_str(), address);
+                print ("symbol xDef {} - section:{:2d} module:{} {} symbol:{} address:{:x}\n",
+                       found ? "redefined": "",
+                       (int)section, linker.getCurrentModuleName(), found ? symbol->mModuleName : "",
+                       symbolName, address);
 
               symbol->mDefined = true;
               symbol->mModuleName = linker.getCurrentModuleName();
@@ -1096,14 +1091,14 @@ private:
           //}}}
 
           case 6:         // xRef symbol to section xx - unexpected
-            printf ("xRef to specified section:%d\n", int(section));
+            print ("xRef to specified section:{}\n", int(section));
             [[fallthrough]];
           //{{{
           case  7: { // xRef symbol to any section
             string symbolName = getSymbolName();
 
             if (kPassDebug)
-              printf ("symbol xRef - section:%2d %8s\n", (int)section, symbolName.c_str());
+              print ("symbol xRef - section:{:2d} {:8s}\n", (int)section, symbolName);
 
             if (pass1) {
               linker.incXrefs();
@@ -1127,7 +1122,7 @@ private:
                 objectFile->mTopEsd++;
                 }
               else
-                printf ("error - xRef symbol not found in pass2 %s\n", symbolName.c_str());
+                print ("error - xRef symbol not found in pass2 {}\n", symbolName);
               }
 
             break;
@@ -1137,7 +1132,7 @@ private:
           //{{{
           case  8: { // commandLineAddress in section - unexpected
             if (kPassDebug)
-              printf ("command Line address section\n");
+              print ("command Line address section\n");
 
             for (int i = 0; i < 15; i++)
               getUint8();
@@ -1148,7 +1143,7 @@ private:
           //{{{
           case  9: { // commandLineAddress in absolute section - unexpected
             if (kPassDebug)
-              printf ("command Line address absolute section\n");
+              print ("command Line address absolute section\n");
 
             for (int i = 0; i < 5; i++)
               getUint8();
@@ -1159,7 +1154,7 @@ private:
           //{{{
           case 10: { // commandLineAddress in common section in section xx - unexpected
             if (kPassDebug)
-              printf ("command Line address common section\n");
+              print ("command Line address common section\n");
 
             for (int i = 0; i < 15; i++)
               getUint8();
@@ -1170,7 +1165,7 @@ private:
           //{{{
           default:
             if (pass1)
-              printf ("unknown EsdType %d\n", esdType);
+              print ("unknown EsdType {}\n", esdType);
           //}}}
           }
         }
@@ -1188,7 +1183,7 @@ private:
       uint32_t codeStart = objectFile->mEsds[currentEsd].mOutAddress;
 
       if (kOutDebug)
-        printf ("output bitmap:%x currentEsd:%d\n", bitmap, currentEsd);
+        print ("output bitmap:{:x} currentEsd:{:d}\n", bitmap, currentEsd);
 
       output.init();
 
@@ -1202,18 +1197,18 @@ private:
           bool longAddress = (byte >> 3) & 1;
 
           if (kOutDebug)
-            printf ("byte:%02x numEsds:%d offsetFieldLength:%d longAddress:%d\n",
-                    byte, numEsds, offsetFieldLength, longAddress);
+            print ("byte:{:2x} numEsds:{} offsetFieldLength:{} longAddress:{}\n",
+                   byte, numEsds, offsetFieldLength, longAddress);
 
           uint32_t add = 0;
           for (int i = 1; i <= numEsds; i++) {
             thisEsd = getUint8();
             if (kOutDebug)
-              printf ("thisEsd:%d topEsd:%d\n", thisEsd, objectFile->mTopEsd);
+              print ("thisEsd:{} topEsd:{}\n", thisEsd, objectFile->mTopEsd);
             if (thisEsd > objectFile->mTopEsd)
               //{{{  error, using esd greater than topEsd
-              printf ("error - %s using esd:%d greater than topEsd:%d\n",
-                      linker.getCurrentModuleName().c_str(), thisEsd, objectFile->mTopEsd);
+              print ("error - {} using esd:%{}greater than topEsd:{}\n",
+                     linker.getCurrentModuleName(), thisEsd, objectFile->mTopEsd);
               //}}}
 
             if (i & 0x1)
@@ -1236,18 +1231,18 @@ private:
                       offset = 0xFFFF0000 | offset;
                      break;
             case 4: break;
-            default: printf ("error - unexpected offsetFieldLength:%d\n", offsetFieldLength);
+            default: print ("error - unexpected offsetFieldLength:{}\n", offsetFieldLength);
             }
 
           if (kOutDebug)
-            printf ("offset %x + %x = %x\n", add, offset, add + offset);
+            print ("offset {:x} + {:x} = {:x}\n", add, offset, add + offset);
 
           add = add + offset;
           if (numEsds == 0) {
             //{{{  not sure what this does
             if (offset & 0x01) {
-              printf ("error - %s odd fix-up offset:%8x esd:%d, codeStart:%8x\n",
-                      linker.getCurrentModuleName().c_str(), offset, currentEsd, codeStart);
+              print ("error - {} odd fix-up offset:{:8x} esd:{}, codeStart:{:8x}\n",
+                     linker.getCurrentModuleName().c_str(), offset, currentEsd, codeStart);
               offset = offset + 1;
               }
 
@@ -1260,7 +1255,7 @@ private:
             //}}}
           else {
             if (!longAddress && (add & 0xFFFF0000))
-              printf ("error - trying to put long address into word location:%8x\n", add);
+              print ("error - trying to put long address into word location:%8x\n", add);
 
             if (objectFile->mEsds [thisEsd].mSymbol != nullptr) {
               // only need named symbols
@@ -1305,23 +1300,23 @@ private:
     //{{{
     void dump() {
 
-      printf ("record length:0x%x header:%c\n", mLength, mHeader);
+      print ("record length:0x{:x} header:{}\n", mLength, mHeader);
 
       // dump block
       int i = 0;
       while (i < mLength-1) {
         if ((i % 32) == 0) // indent
-          printf ("  %02x  ", i);
+          print ("  {:2x}  ", i);
         if ((i % 32) == 16)
-          printf (" ");
-        printf ("%02x ", mBlock[i]);
+          print (" ");
+        print ("{:2x} ", mBlock[i]);
         if ((i % 32) == 31)
-          printf ("\n");
+          print ("\n");
         i++;
         }
 
       if (i % 32)
-        printf ("\n");
+        print ("\n");
       }
     //}}}
 
@@ -1378,11 +1373,11 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
     else if (line[0] == '@') {
       //{{{  include
       string includeFileName = line.substr (1, line.length()-1) + ".cmd";
-      printf ("including file %s\n", includeFileName.c_str());
+      print ("including file {}\n", includeFileName);
 
       ifstream includeStream (includeFileName, ifstream::in);
       if (!includeStream.is_open())
-        printf ("error - include file %s not found\n", includeFileName.c_str());
+        print ("error - include file {} not found\n", includeFileName);
       else {
         parseCmdStream (includeStream, objectFiles, linker);
         includeStream.close();
@@ -1392,19 +1387,19 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
     else if (line[0] == '!') {
       //{{{  comment
       if (kCmdLineDebug)
-        printf ("comment %s\n", line.c_str());
+        print ("comment {}\n", line);
       }
       //}}}
     else if (line[0] == '#') {
       //{{{  comment
       if (kCmdLineDebug)
-        printf ("comment %s\n", line.c_str());
+        print ("comment {}\n", line);
       }
       //}}}
     else {
       //{{{  objectFileName
       if (kObjectFileDebug)
-        printf ("objectFileName %s\n", line.c_str());
+        print ("objectFileName {}\n", line);
 
       // find any trailing comma
       size_t terminatorPos = line.find (',');
@@ -1419,7 +1414,7 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
         string fileRootName = line.substr (0, dotPos);
         string extension = line.substr (dotPos+1, terminatorPos - dotPos-1);
         if (kObjectFileDebug)
-          printf ("extension %s %s %s\n", line.c_str(), fileRootName.c_str(), extension.c_str());
+          print ("extension {} {} {}\n", line, fileRootName, extension);
         objectFiles.push_back (cObjectFile (fileRootName, extension));
         }
 
@@ -1430,6 +1425,8 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
 //}}}
 //{{{
 int main (int numArgs, char* args[]) {
+
+  print (fg (color::orange), "ql - 68K linker\n");
 
   cLinker linker;
 
@@ -1443,12 +1440,12 @@ int main (int numArgs, char* args[]) {
 
   if (cmdFileName.empty()) {
     //{{{  no .cmd filename - error, exit
-    printf ("no .cmd file specified\n");
+    print ("no .cmd file specified\n");
     return 1;
     }
     //}}}
 
-  printf ("using cmdFileName %s\n", cmdFileName.c_str());
+  print ("using cmdFileName {}\n", cmdFileName);
 
   vector <cObjectFile> objectFiles;
 
@@ -1456,7 +1453,7 @@ int main (int numArgs, char* args[]) {
   ifstream cmdStream (cmdFileName + ".cmd", ifstream::in);
   if (!cmdStream.is_open()) {
     //{{{  error, return
-    printf ("error - cmd file %s not found\n", cmdFileName.c_str());
+    print ("error - cmd file {} not found\n", cmdFileName);
     return 1;
     }
     //}}}
@@ -1481,7 +1478,7 @@ int main (int numArgs, char* args[]) {
     for (auto& objectFile : objectFiles)
       objectFile.pass2 (linker, output);
     }
-  printf ("pass2 done\n");
+  print ("pass2 done\n");
 
   if (linker.getEnabled (eXref))
     linker.dumpReferences (cmdFileName);

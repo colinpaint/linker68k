@@ -1,12 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    <Filter Include="header">
+      <UniqueIdentifier>{57039590-250f-4ae3-bf54-080fe701e477}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ql.cpp" />
+    <ClCompile Include="fmt\format.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="fmt\color.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\core.h">
+      <Filter>header</Filter>
+    </ClInclude>
+    <ClInclude Include="fmt\format.h">
+      <Filter>header</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

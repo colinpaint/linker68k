@@ -5,8 +5,8 @@ DEB = -g
 CFLAGS = $(OPT) $(DEB)
 LFLAGS =
 
-ql: ql.o ql.cpp
-	$(CC) $(LFLAGS) ql.o -lstdc++ -o ql
+ql: ql.o fmt/format.o
+	$(CC) $(LFLAGS) ql.o fmt/format.o -lstdc++ -o ql
 
 %.o: %.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
