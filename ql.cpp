@@ -11,6 +11,7 @@
 #include <fstream>
 #include <iomanip>
 
+// use C++20 format library, still not in gcc so use fmt
 #include "fmt/core.h"
 #include "fmt/color.h"
 
@@ -82,15 +83,16 @@ public:
   //{{{
   void dump() {
 
-    print ("options ");
+    print (fg (color::yellow), "options");
     for (uint8_t optionIndex = eChat; optionIndex < eLastOption; optionIndex++)
       if (mEnabled[optionIndex])
-        print ("{} ", kOptionNames [optionIndex]);
+        print (fg (color::lime_green), " {}", kOptionNames [optionIndex]);
     print ("\n");
 
     for (uint8_t section = 0;  section <= 15; section++)
       if (mSectionBaseAddress[section])
-        print ("  section {:2d} baseAddress:{:6x}\n", section, mSectionBaseAddress[section]);
+        print (fg (color::yellow),
+               "  section {:2d} baseAddress:{:6x}\n", section, mSectionBaseAddress[section]);
     }
   //}}}
 
@@ -161,7 +163,7 @@ private:
           print ("parseOption section {} sectionNum:{:2d} address:{:6x}\n", token, (int)section, address);
         }
       else
-        print ("parseOption - unrecognised option {}\n", token);
+        print (fg (color::orange_red), "parseOption - unrecognised option {}\n", token);
       }
     }
   //}}}
@@ -316,13 +318,15 @@ public:
         mBaseAddress = mOptions.getSectionBaseAddress (section);
 
       if (mSections[section].mSectBase) {
-        print ("section:{:2d} start:{:6x} size:{:6x}\n", (int)section, mBaseAddress, mSections[section].mSectBase);
+        print (fg (color::light_yellow),
+               "section:{:2d} start:{:6x} size:{:6x}\n", (int)section, mBaseAddress, mSections[section].mSectBase);
         mSections[section].mBaseAddress = mBaseAddress;
         mBaseAddress = mBaseAddress + mSections[section].mSectBase;
         }
       }
 
-    print ("          finish:{:6x} size:{:6x}\n", mBaseAddress, mBaseAddress - mOptions.getSectionBaseAddress(0));
+    print (fg (color::light_yellow),
+           "          finish:{:6x} size:{:6x}\n", mBaseAddress, mBaseAddress - mOptions.getSectionBaseAddress(0));
     }
   //}}}
   //{{{
@@ -335,9 +339,10 @@ public:
       symbol->mDefined ? numDefinedSymbols++: numUndefinedSymbols++;
 
     if (numUndefinedSymbols)
-      print ("{} undefined symbols, ", numUndefinedSymbols);
+      print (fg (color::orange_red), "{} undefined symbols, ", numUndefinedSymbols);
 
-    print ("%{} symbols, {} objectFiles, {} commonDefs, {} xDefs, {} xRefs\n",
+    print (fg (color::light_salmon),
+           "%{} symbols, {} objectFiles, {} commonDefs, {} xDefs, {} xRefs\n",
             numDefinedSymbols, mNumObjectFiles, mNumCommonDefs, mNumXdefs, mNumXrefs);
     }
   //}}}
@@ -712,7 +717,7 @@ public:
     if (!stream.is_open()) {
       //{{{  error, return
       mErrorFlagged = true;
-      print ("error - objectFile {} not found\n", mFileName);
+      print (fg (color::orange_red), "error - objectFile {} not found\n", mFileName);
       return;
       }
       //}}}
@@ -762,7 +767,7 @@ public:
     if (!stream.is_open()) {
       //{{{  error, return
       mErrorFlagged = true;
-      print ("error - objectFile {} not found on pass2 but ok on pass1\n", mFileName);
+      print (fg (color::orange_red), "error - objectFile {} not found on pass2 but ok on pass1\n", mFileName);
       return;
       }
       //}}}
@@ -856,7 +861,7 @@ private:
             mBlock[i] = stream.get();
         }
       else
-        print ("error - unrecognised objectRecord header {:x}\n", mHeader);
+        print (fg (color::orange_red), "error - unrecognised objectRecord header {:x}\n", mHeader);
 
       return true;
       }
@@ -878,7 +883,7 @@ private:
     // get 1 bytes to form uint8_t result
 
       if (mBlockIndex >= mLength) {
-        print ("error - cObject::getUint8 past end of record data\n");
+        print (fg (color::orange_red), "error - cObject::getUint8 past end of record data\n");
         return 0;
         }
 
@@ -1021,7 +1026,7 @@ private:
               // pass2
               cSymbol* symbol = linker.findSymbol (symbolName);
               if (!symbol)
-                print ("error - common symbol not found on pass2 {}\n", symbolName);
+                print (fg (color::orange_red), "error - common symbol not found on pass2 {}\n", symbolName);
 
               objectFile->mEsds[objectFile->mTopEsd].mAddress = symbol->mAddress + linker.mSections[symbol->mSection].mBaseAddress;
               objectFile->mEsds[objectFile->mTopEsd].mSymbol = symbol;
@@ -1122,7 +1127,7 @@ private:
                 objectFile->mTopEsd++;
                 }
               else
-                print ("error - xRef symbol not found in pass2 {}\n", symbolName);
+                print (fg (color::orange_red), "error - xRef symbol not found in pass2 {}\n", symbolName);
               }
 
             break;
@@ -1207,7 +1212,7 @@ private:
               print ("thisEsd:{} topEsd:{}\n", thisEsd, objectFile->mTopEsd);
             if (thisEsd > objectFile->mTopEsd)
               //{{{  error, using esd greater than topEsd
-              print ("error - {} using esd:%{}greater than topEsd:{}\n",
+              print (fg (color::orange_red), "error - {} using esd:%{}greater than topEsd:{}\n",
                      linker.getCurrentModuleName(), thisEsd, objectFile->mTopEsd);
               //}}}
 
@@ -1231,7 +1236,7 @@ private:
                       offset = 0xFFFF0000 | offset;
                      break;
             case 4: break;
-            default: print ("error - unexpected offsetFieldLength:{}\n", offsetFieldLength);
+            default: print (fg (color::orange_red), "error - unexpected offsetFieldLength:{}\n", offsetFieldLength);
             }
 
           if (kOutDebug)
@@ -1241,7 +1246,7 @@ private:
           if (numEsds == 0) {
             //{{{  not sure what this does
             if (offset & 0x01) {
-              print ("error - {} odd fix-up offset:{:8x} esd:{}, codeStart:{:8x}\n",
+              print (fg (color::orange_red), "error - {} odd fix-up offset:{:8x} esd:{}, codeStart:{:8x}\n",
                      linker.getCurrentModuleName().c_str(), offset, currentEsd, codeStart);
               offset = offset + 1;
               }
@@ -1255,7 +1260,7 @@ private:
             //}}}
           else {
             if (!longAddress && (add & 0xFFFF0000))
-              print ("error - trying to put long address into word location:%8x\n", add);
+              print (fg (color::orange_red), "error - trying to put long address into word location:%8x\n", add);
 
             if (objectFile->mEsds [thisEsd].mSymbol != nullptr) {
               // only need named symbols
@@ -1377,7 +1382,7 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
 
       ifstream includeStream (includeFileName, ifstream::in);
       if (!includeStream.is_open())
-        print ("error - include file {} not found\n", includeFileName);
+        print (fg (color::orange_red), "error - include file {} not found\n", includeFileName);
       else {
         parseCmdStream (includeStream, objectFiles, linker);
         includeStream.close();
@@ -1426,7 +1431,7 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
 //{{{
 int main (int numArgs, char* args[]) {
 
-  print (fg (color::orange), "ql - 68K linker\n");
+  print (fg (color::lavender), "ql - 68K linker\n");
 
   cLinker linker;
 
@@ -1440,12 +1445,12 @@ int main (int numArgs, char* args[]) {
 
   if (cmdFileName.empty()) {
     //{{{  no .cmd filename - error, exit
-    print ("no .cmd file specified\n");
+    print (fg (color::orange_red), "no .cmd file specified\n");
     return 1;
     }
     //}}}
 
-  print ("using cmdFileName {}\n", cmdFileName);
+  print (fg (color::orange), "using cmdFileName {}\n", cmdFileName);
 
   vector <cObjectFile> objectFiles;
 
@@ -1453,7 +1458,7 @@ int main (int numArgs, char* args[]) {
   ifstream cmdStream (cmdFileName + ".cmd", ifstream::in);
   if (!cmdStream.is_open()) {
     //{{{  error, return
-    print ("error - cmd file {} not found\n", cmdFileName);
+    print (fg (color::orange_red), "error - cmd file {} not found\n", cmdFileName);
     return 1;
     }
     //}}}
@@ -1478,7 +1483,7 @@ int main (int numArgs, char* args[]) {
     for (auto& objectFile : objectFiles)
       objectFile.pass2 (linker, output);
     }
-  print ("pass2 done\n");
+  print (fg (color::orange), "pass2 done\n");
 
   if (linker.getEnabled (eXref))
     linker.dumpReferences (cmdFileName);
