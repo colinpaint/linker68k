@@ -18,16 +18,15 @@
 using namespace std;
 using namespace fmt;
 //}}}
-//{{{  debug flags
+//{{{  constexpr, const enum
 constexpr bool kOptionDebug = false;
 constexpr bool kCmdLineDebug = false;
 constexpr bool kObjectFileDebug = false;
 constexpr bool kPassDebug = false;
 constexpr bool kOutDebug = false;
-//}}}
-//{{{  const, enum
-// options, easier to use as globals
-enum eOption { eChat, eDebug, eMod, eMap, eBell, eXref, eCheck, eEscape, eBin, eSr, eLastOption };
+
+// enum options, easier to use as globals
+enum eOption { eChat, eDebug, eXrf, eEscape, eBin, eSr, eLastOption };
 constexpr size_t kNumOptions = eLastOption; // for enum arrays to play nice
 
 // sections
@@ -43,7 +42,6 @@ constexpr uint8_t kEscapeCh = 0x1B;
 
 constexpr int kDumpWidth = 100;
 //}}}
-// color::orange, color::light_salmon,  color::yellow, color::green, color::lime_green,  color::lavender
 
 //{{{
 class cOptions {
@@ -169,10 +167,8 @@ private:
   //}}}
 
   // const
-  const array <string, kNumOptions> kOptionNames =
-    { "chat", "debug", "mod", "map", "bell", "xref", "check", "esc", "bin", "sr"};
-  const array <string, kNumOptions> kOptionAltNames =
-    { "cha",  "deb",   "",    "",    "",     "xrf",  "chk"  , ""   , ""   ,  ""  };
+  const array <string, kNumOptions> kOptionNames    = { "chat", "debug", "xref", "esc", "bin", "sr"};
+  const array <string, kNumOptions> kOptionAltNames = { "cha",  "deb",   "xrf",  ""   , ""   ,  ""  };
 
   // var
   array <bool, kNumOptions> mEnabled = { false };
@@ -342,7 +338,7 @@ public:
       print (fg (color::orange_red), "{} undefined symbols, ", numUndefinedSymbols);
 
     print (fg (color::light_salmon),
-           "%{} symbols, {} objectFiles, {} commonDefs, {} xDefs, {} xRefs\n",
+           "{} symbols, {} objectFiles, {} commonDefs, {} xDefs, {} xRefs\n",
             numDefinedSymbols, mNumObjectFiles, mNumCommonDefs, mNumXdefs, mNumXrefs);
     }
   //}}}
@@ -495,8 +491,8 @@ public:
   //}}}
 
   //{{{
-  void addCodeByte (uint8_t byte) {
-    mCode[mCodeLength++] = byte;
+  void addWord (uint16_t word) {
+    mCode[mCodeLength++] = word;
     }
   //}}}
   //{{{
@@ -563,11 +559,12 @@ private:
   void outputPacket (uint32_t start, uint32_t pos, uint32_t length) {
   // output packet of codeArray
 
+    print ("outputPacket start:{:6x} pos:{:2x} length:{}\n", start, pos, length);
     uint32_t packetAddress = start + (pos * 2);
     uint32_t packetLength = (length * 2) + 4; // this happens to be right for both
 
     if (mBin) {
-      //{{{  binary
+      // .bin packetStart
       writeByte (kEscapeCh);
       writeByte (0);
 
@@ -580,84 +577,32 @@ private:
       writeCheckSummedByte (packetAddress >> 8);
       writeCheckSummedByte (packetAddress & 0xFF);
 
-      // !!!! is this right
       mOutputChecksum = 0;
 
-      //b,cstart,i:integer;
-      //outputChecksum := 0;
-
-      //for (int i = 1; i <= len; i++) {
-        //b = int (uand (%x'FFFF', uint (codeArray[i+pos]))) DIV 256;
-        //if (b = kEscapeCh) AND (escape = true) then
-          //begin
-          //binBlock[binBlockIndex] := b;
-          //binBlockIndex := binBlockIndex + 1;
-          //if binBlockIndex > 511 then
-            //begin
-            //if out then write
-              //(binaryFile, binBlock);
-            //if download then
-              //write (downloadTargetFile, binBlock);
-            //binBlockIndex := 0;
-            //end;
-          //end;
-
-        //binBlock[binBlockIndex] := b;
-        //binBlockIndex := binBlockIndex + 1;
-        //if binBlockIndex > 511 then
-          //begin
-          //if out then
-            //write (binaryFile, binBlock);
-          //if download then
-            //write (downloadTargetFile, binBlock);
-          //binBlockIndex := 0;
-          //end;
-
-        //outputChecksum := ord(uxor(uint(b),uint(outputChecksum)));
-
-        //b := codeArray[i+pos] MOD 256;
-        //if (b = esc) AND (kEscapeChape = true) then
-          //begin
-          //binBlock[binBlockIndex] := b;
-          //binBlockIndex := binBlockIndex + 1;
-          //if binBlockIndex > 511 then
-            //begin
-            //if out then
-              //write(binaryFile, binBlock);
-            //if download then
-              //write (downloadTargetFile, binBlock);
-            //binBlockIndex := 0;
-            //end;
-          //end;
-
-        //binBlock[binBlockIndex] := b;
-        //binBlockIndex := binBlockIndex + 1;
-        //if binBlockIndex > 511 then
-          //begin
-          //if out then
-            //write(binaryFile, binBlock);
-          //if download then
-            //write(downloadTargetFile, binBlock);
-          //binBlockIndex := 0;
-          //end;
-        //outputChecksum := ord (uxor (uint(b), uint (outputChecksum)));
-        //end
+      // packet
+      for (uint8_t i = 0; i < length; i++) {
+        // output length code words
+        writeCheckSummedByte (mCode[i+pos] >> 8);
+        writeCheckSummedByte (mCode[i+pos] & 0xFF);
+        }
 
       writeByte (mOutputChecksum);
       }
-      //}}}
+
     else {
-      // packet start
+      // s format .sr packetStart
       mStream << "S2";
 
       mOutputChecksum = 0;
       writeCheckSummedByte (packetLength);
+
       writeCheckSummedByte (packetAddress >> 16);
       writeCheckSummedByte (packetAddress >> 8);
       writeCheckSummedByte (packetAddress & 0xFF);
 
       // packet
       for (uint8_t i = 0; i < length; i++) {
+        // output length code words
         writeCheckSummedByte (mCode[i+pos] >> 8);
         writeCheckSummedByte (mCode[i+pos] & 0xFF);
         }
@@ -707,7 +652,9 @@ public:
   //{{{
   void pass1 (cLinker& linker) {
 
-    if (kPassDebug)
+    if (linker.getEnabled (eChat))
+      print ("objectFile {}\n", mFileName);
+    else if (kPassDebug)
       print ("pass1 file {}\n", mFileName);
 
     if ((mType == eRx) || (mType == eHis) || (mType == eUnknown))
@@ -761,7 +708,7 @@ public:
       return;
 
     if (kPassDebug)
-      printf ("pass 2 file %s\n", mFileName.c_str());
+      print ("pass 2 file {}\n", mFileName);
 
     ifstream stream (mFileName.c_str(), ifstream::in | ifstream::binary);
     if (!stream.is_open()) {
@@ -1282,16 +1229,17 @@ private:
 
               // generate resolved address
               if (longAddress)
-                output.addCodeByte (add >> 16);
-              output.addCodeByte (add);
+                output.addWord (add >> 16);
+              output.addWord (add);
               }
             }
           }
           //}}}
         else {
           //{{{  absolute code
-          output.addCodeByte (getUint8());
-          output.addCodeByte (getUint8());
+          uint16_t codeWord = getUint8() << 8;
+          codeWord |= getUint8();
+          output.addWord (codeWord);
           }
           //}}}
         bitmap = bitmap << 1;
@@ -1431,7 +1379,7 @@ void parseCmdStream (ifstream& stream, vector <cObjectFile>& objectFiles, cLinke
 //{{{
 int main (int numArgs, char* args[]) {
 
-  print (fg (color::lavender), "ql - 68K linker\n");
+  print (fg (color::white), "ql - 68K linker\n");
 
   cLinker linker;
 
@@ -1485,7 +1433,7 @@ int main (int numArgs, char* args[]) {
     }
   print (fg (color::orange), "pass2 done\n");
 
-  if (linker.getEnabled (eXref))
+  if (linker.getEnabled (eXrf))
     linker.dumpReferences (cmdFileName);
 
   return 0;

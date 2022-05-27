@@ -1,6 +1,6 @@
 # Makefile for ql motorola .ro format linker
 CC = g++
-OPT = -std=c++20
+OPT = -std=c++17
 DEB = -g
 CFLAGS = $(OPT) $(DEB)
 LFLAGS =
@@ -30,4 +30,4 @@ clean:
 #
 	rm -f -v *.sr
 	rm -f -v *.bin
-	rm -f -v *.xref
+	rm -f -v *.xrf
