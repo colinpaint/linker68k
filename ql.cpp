@@ -195,7 +195,7 @@ public:
   string mName;
   string mModuleName;
 
-  uint8_t mSection = 0;
+  int mSection = 0;
   uint32_t mAddress = 0;
 
   bool mCommonSizeDefined = false;
@@ -433,6 +433,7 @@ public:
     };
   //}}}
   array <sSection, 16> mSections = {};
+  sSection mAbsoluteSection = {};
 
 private:
   cOptions mOptions;
@@ -941,7 +942,7 @@ private:
                 // check redefinition
                 if (size != symbol->mCommonSize) {
                   if (!symbol->mErrorFlagged && !symbol->mCommonSizeDefined) {
-                    print ("Label {} doubleDefined\n", symbolName);
+                    print ("Common symbol {} is defined twice\n", symbolName);
                     print ("- common in {}\n", linker.getCurrentModuleName());
                     print ("- xDef in {}\n", symbol->mModuleName);
                     symbol->mErrorFlagged = true;
@@ -1034,8 +1035,16 @@ private:
 
               symbol->mDefined = true;
               symbol->mModuleName = linker.getCurrentModuleName();
-              symbol->mSection = section;
-              symbol->mAddress = address + linker.mSections[section].mSectBase;
+
+              if (esdType == 5) {
+                // symbol in absolute section
+                symbol->mSection = -1;
+                symbol->mAddress = address + linker.mAbsoluteSection.mSectBase;
+                }
+              else {
+                symbol->mSection = section;
+                symbol->mAddress = address + linker.mSections[section].mSectBase;
+                }
               }
 
             break;
